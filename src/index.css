@@ -1,0 +1,126 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: 'Lora', serif;
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-sans: 'Inter', sans-serif;
+}
+
+@view-transition { navigation: auto; }
+
+:root {
+    --rotation: 0deg;
+    --gradient-speed: 8s;
+}
+
+@property --rotation {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+}
+
+@keyframes rotate-gradient {
+    to { --rotation: 360deg; }
+}
+
+@keyframes typing {
+    from { width: 0 } 
+    to { width: 100% }
+}
+
+@keyframes blink-caret {
+    from, to { border-color: transparent }
+    50% { border-color: #6366f1; }
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #0f172a;
+    color: #f8f9fa;
+    overflow-x: hidden;
+    margin: 0;
+}
+
+.font-serif {
+    font-family: 'Lora', serif;
+}
+
+.font-display {
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+.radiant-wrapper {
+    --border-size: 1px;
+    --gradient: conic-gradient(
+        from var(--rotation) 
+        at 50% 50% in oklab, 
+        rgba(99, 102, 241, 0.6) 0%, 
+        rgba(168, 85, 247, 0.6) 25%, 
+        rgba(99, 102, 241, 0.6) 50%, 
+        rgba(236, 72, 153, 0.6) 75%, 
+        rgba(99, 102, 241, 0.6) 100%
+    );
+    animation: rotate-gradient var(--gradient-speed) infinite linear;
+    position: relative;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.radiant-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: var(--gradient);
+    z-index: -1;
+    filter: blur(15px);
+    opacity: 0.25;
+    transition: opacity 0.5s ease;
+}
+
+.radiant-wrapper:hover::before {
+    opacity: 0.4;
+}
+
+.radiant-border {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: var(--border-size);
+    background: var(--gradient);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+.white-panel {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.1);
+    transition: all 0.5s ease;
+}
+
+.white-panel:hover {
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.15);
+}
+
+.typing-container {
+    display: inline-block;
+    overflow: hidden;
+    white-space: normal;
+    text-align: center;
+}
+
+@media (min-width: 640px) {
+    .typing-container {
+        white-space: nowrap;
+        border-right: 2px solid #6366f1;
+        animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+    }
+}
+
+.hero-background {
+    background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.6), transparent), url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&q=80&w=2070');
+    background-size: cover;
+    background-position: center;
+}

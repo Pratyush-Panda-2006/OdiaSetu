@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <!-- Sun body gradient -->
+    <linearGradient id="sunGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#fbbf24" /> <!-- Gold/Yellow -->
+      <stop offset="50%" stop-color="#f59e0b" /> <!-- Amber -->
+      <stop offset="100%" stop-color="#ea580c" /> <!-- Warm Orange -->
+    </linearGradient>
+    <!-- Left book page/curve gradient (Brownish Orange) -->
+    <linearGradient id="curveLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9a3412" /> <!-- Rust Brown -->
+      <stop offset="100%" stop-color="#c2410c" /> <!-- Orange-brown -->
+    </linearGradient>
+    <!-- Right book page/curve gradient (Yellow Orange) -->
+    <linearGradient id="curveRight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c" /> <!-- Orange -->
+      <stop offset="100%" stop-color="#eab308" /> <!-- Yellow -->
+    </linearGradient>
+  </defs>
+
+  <!-- Sun Rays (Thin radiating lines centered around the sun base) -->
+  <g stroke="#ea580c" stroke-width="1.2" stroke-linecap="round" opacity="0.85">
+    <line x1="50" y1="62" x2="12" y2="62" />
+    <line x1="50" y1="62" x2="15" y2="51" />
+    <line x1="50" y1="62" x2="19" y2="40" />
+    <line x1="50" y1="62" x2="25" y2="31" />
+    <line x1="50" y1="62" x2="33" y2="24" />
+    <line x1="50" y1="62" x2="41" y2="19" />
+    <line x1="50" y1="62" x2="50" y2="17" />
+    <line x1="50" y1="62" x2="59" y2="19" />
+    <line x1="50" y1="62" x2="67" y2="24" />
+    <line x1="50" y1="62" x2="75" y2="31" />
+    <line x1="50" y1="62" x2="81" y2="40" />
+    <line x1="50" y1="62" x2="85" y2="51" />
+    <line x1="50" y1="62" x2="88" y2="62" />
+  </g>
+
+  <!-- Outer Ring of Rays (Fine dots/ticks) -->
+  <g stroke="#d97706" stroke-width="1.2" stroke-dasharray="1.5 3.5" opacity="0.65">
+    <circle cx="50" cy="62" r="41" fill="none" />
+  </g>
+
+  <!-- Sun Circle Body -->
+  <path d="M 18 62 A 32 32 0 0 1 82 62 Z" fill="url(#sunGrad)" />
+
+  <!-- Book Pages/Horizon Base Curves -->
+  <!-- Left Page (Rust-brown swoop) -->
+  <path d="M 14 59 Q 32 54, 50 71 Q 33 60, 14 59 Z" fill="url(#curveLeft)" />
+  
+  <!-- Right Page (Amber-yellow swoop) -->
+  <path d="M 50 71 Q 68 55, 86 59 Q 68 62, 50 71 Z" fill="url(#curveRight)" />
+</svg>
