@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Mic, MicOff, X, Loader2, ArrowRight } from 'lucide-react';
+import { Mic, MicOff, X, Loader2, ArrowRight, Square } from 'lucide-react';
 
 export default function RadiantInputPanel({
   value,
@@ -62,8 +62,10 @@ export default function RadiantInputPanel({
       };
 
       recorder.onstop = () => {
-        const audioBlob = new Blob(chunks, { type: mimeType });
-        onAudioSubmit(audioBlob);
+        if (recorder.shouldSubmit !== false) {
+          const audioBlob = new Blob(chunks, { type: mimeType });
+          onAudioSubmit(audioBlob);
+        }
         
         // Stop all tracks to release mic
         stream.getTracks().forEach(track => track.stop());
@@ -83,8 +85,9 @@ export default function RadiantInputPanel({
     }
   };
 
-  const stopRecording = () => {
+  const stopRecording = (shouldSubmit = true) => {
     if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.shouldSubmit = shouldSubmit;
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       if (timerIntervalRef.current) {
@@ -96,7 +99,7 @@ export default function RadiantInputPanel({
 
   const handleMicClick = () => {
     if (isRecording) {
-      stopRecording();
+      stopRecording(true);
     } else {
       startRecording();
     }
@@ -123,32 +126,67 @@ export default function RadiantInputPanel({
         )}
       </div>
       
-      <div className="radiant-wrapper rounded-[32px] h-72 md:h-80 group">
+      <div className="radiant-wrapper rounded-[32px] h-64 md:h-80 group">
         <div className="radiant-border rounded-[32px]"></div>
-        <div className="white-panel h-full w-full rounded-[32px] p-8 flex flex-col">
-          <textarea 
-            placeholder={isRecording ? "Listening..." : `Type or speak in ${language}...`}
-            className="bg-transparent w-full flex-1 resize-none outline-none text-xl sm:text-2xl md:text-3xl font-light text-slate-950 placeholder:text-slate-300 leading-relaxed font-serif disabled:opacity-50 overflow-y-auto"
-            value={value}
-            disabled={isRecording || isProcessing}
-            onChange={(e) => onChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-          ></textarea>
+        <div className="white-panel h-full w-full rounded-[32px] p-5 md:p-8 flex flex-col">
+          {isRecording ? (
+            <div className="flex-1 flex flex-col items-center justify-center space-y-4 py-4">
+              <div className="flex items-end justify-center gap-1.5 h-16">
+                <div className="w-1.5 bg-red-500 rounded-full voice-bar h-12" style={{ animationDelay: '0.1s', animationDuration: '0.8s' }}></div>
+                <div className="w-1.5 bg-red-500 rounded-full voice-bar h-16" style={{ animationDelay: '0.3s', animationDuration: '0.6s' }}></div>
+                <div className="w-1.5 bg-red-500 rounded-full voice-bar h-8" style={{ animationDelay: '0.5s', animationDuration: '0.9s' }}></div>
+                <div className="w-1.5 bg-red-500 rounded-full voice-bar h-14" style={{ animationDelay: '0.2s', animationDuration: '0.7s' }}></div>
+                <div className="w-1.5 bg-red-500 rounded-full voice-bar h-10" style={{ animationDelay: '0.4s', animationDuration: '0.5s' }}></div>
+              </div>
+              <p className="text-sm md:text-base font-serif italic text-slate-400 animate-pulse text-center">
+                Listening... Speak now in {language}
+              </p>
+            </div>
+          ) : (
+            <textarea 
+              placeholder={`Type or speak in ${language}...`}
+              className="bg-transparent w-full flex-1 resize-none outline-none text-lg sm:text-xl md:text-2xl font-light text-slate-950 placeholder:text-slate-300 leading-relaxed font-serif disabled:opacity-50 overflow-y-auto"
+              value={value}
+              disabled={isProcessing}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+            ></textarea>
+          )}
           
           <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-            <div className="flex items-center gap-4">
-              <button 
-                type="button"
-                onClick={handleMicClick}
-                disabled={isProcessing}
-                className={`w-14 h-14 rounded-full border flex items-center justify-center transition-all duration-300 relative ${
-                  isRecording 
-                    ? 'bg-red-500 border-red-500 text-white animate-pulse' 
-                    : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-indigo-500 hover:text-white hover:border-indigo-500'
-                } disabled:opacity-50`}
-              >
-                {isRecording ? <MicOff className="text-xl" /> : <Mic className="text-xl" />}
-              </button>
+            <div className="flex items-center gap-3">
+              {isRecording ? (
+                <>
+                  <button 
+                    type="button"
+                    onClick={() => stopRecording(true)}
+                    disabled={isProcessing}
+                    className="w-14 h-14 rounded-full bg-red-500 border border-red-500 text-white flex items-center justify-center transition-all duration-300 relative animate-pulse shadow-lg shadow-red-200/50 hover:bg-red-600"
+                    title="Stop and Translate"
+                  >
+                    <Square className="w-5 h-5 fill-white text-white" />
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => stopRecording(false)}
+                    disabled={isProcessing}
+                    className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-all duration-300"
+                    title="Cancel Recording"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </>
+              ) : (
+                <button 
+                  type="button"
+                  onClick={handleMicClick}
+                  disabled={isProcessing}
+                  className="w-14 h-14 rounded-full bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-indigo-500 hover:text-white hover:border-indigo-500 transition-all duration-300 disabled:opacity-50"
+                  title="Tap to speak"
+                >
+                  <Mic className="text-xl" />
+                </button>
+              )}
               
               <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">
                 {isRecording 

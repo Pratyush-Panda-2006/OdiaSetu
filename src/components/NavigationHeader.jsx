@@ -13,7 +13,7 @@ export default function NavigationHeader({ showBadge = true, homeHref = "#" }) {
         </div>
       )}
       <a href={homeHref} className="block hover:opacity-90 transition-opacity">
-        <h1 className="text-5xl sm:text-7xl md:text-9xl font-bold tracking-tighter text-white font-serif">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-white font-serif">
           Odia<span className="italic font-normal text-indigo-200/40">Setu</span>
         </h1>
       </a>

@@ -107,11 +107,12 @@ export default function App() {
       const data = await response.json();
       if (response.ok) {
         setOutputText(data.translation);
-        // If we translated audio, update the text input pane with the transcription if possible.
-        // For Gemini 2.5 Flash voice to text translation, Gemini processes audio and outputs the final translation directly.
-        // We do not have intermediate English transcription of the Odia audio if translating to English,
-        // but we can set a placeholder or leave input text as is, or we can make the textarea say "[Voice Input Translated]"
-        setInputText("[Voice input recorded]");
+        setInputText(data.transcription || '[Voice input processed]');
+        if (data.detectedLanguage) {
+          const detected = data.detectedLanguage === 'Odia' ? 'Odia' : 'English';
+          setInputLanguage(detected);
+          setOutputLanguage(detected === 'Odia' ? 'English' : 'Odia');
+        }
       } else {
         setOutputText(`Error: ${data.error || 'Failed to process voice'}`);
       }
@@ -164,10 +165,10 @@ export default function App() {
   };
 
   return (
-    <div className="hero-background min-h-screen w-full flex flex-col items-center relative p-6">
+    <div className="hero-background min-h-screen w-full flex flex-col items-center relative p-4 sm:p-6">
       <div className="absolute inset-0 bg-slate-950/10 pointer-events-none"></div>
       
-      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center space-y-12 my-auto py-12">
+      <div className="relative z-10 w-full max-w-6xl flex flex-col items-center space-y-8 md:space-y-12 my-auto py-8 md:py-12">
         {/* Header Component */}
         <NavigationHeader showBadge={true} homeHref="#" />
         
@@ -220,11 +221,11 @@ export default function App() {
       </div>
 
       {/* History Area */}
-      <div className="w-full bg-slate-950/60 backdrop-blur-md py-20 px-6 relative z-20 border-t border-slate-900">
-        <div className="max-w-6xl mx-auto space-y-12">
-          <div className="flex items-center justify-between border-b border-slate-900 pb-8">
-            <h3 className="text-4xl font-serif text-white">Past Conversations</h3>
-            <div className="flex gap-6 items-center">
+      <div className="w-full bg-slate-950/60 backdrop-blur-md py-10 md:py-20 px-4 md:px-6 relative z-20 border-t border-slate-900">
+        <div className="max-w-6xl mx-auto space-y-8 md:space-y-12">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-6 md:pb-8">
+            <h3 className="text-2xl md:text-4xl font-serif text-white">Past Conversations</h3>
+            <div className="flex gap-4 md:gap-6 items-center">
               {history.length > 0 && (
                 <a 
                   href="#" 
@@ -234,9 +235,6 @@ export default function App() {
                   Clear History
                 </a>
               )}
-              <a href="#" className="text-indigo-400 flex items-center gap-2 hover:underline text-sm font-semibold">
-                Explore Archive <ArrowUpRight className="w-4 h-4" />
-              </a>
             </div>
           </div>
           

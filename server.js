@@ -51,6 +51,19 @@ function getAI() {
 
 const SYSTEM_INSTRUCTION = "You are a real-time, context-aware voice translator between Odia and English. Analyze the provided file/text. If it is in Odia (including casual variations mixed with English), translate to natural English. If it is in English, translate directly into native Odia script. Output ONLY the translation. No conversational preamble.";
 
+const AUDIO_SYSTEM_INSTRUCTION = `You are a real-time, context-aware voice translator and transcriber between Odia and English.
+Analyze the provided audio file.
+1. Detect whether the spoken language is "Odia" or "English".
+2. Transcribe the audio exactly in its original spoken language (English in English script, Odia in Odia script).
+3. Translate it to the target language (Odia to English, or English to Odia).
+You must return a JSON object with the following schema:
+{
+  "detectedLanguage": "Odia" or "English",
+  "transcription": "the exact transcription in the original language",
+  "translation": "the translation in the target language"
+}
+Do not return any other text, conversational intro, markdown formatting, or markdown code blocks. Return raw JSON only.`;
+
 // Text translation endpoint
 app.post('/api/translate-text', async (req, res) => {
   const { text } = req.body;
@@ -105,12 +118,30 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
         }
       ],
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: AUDIO_SYSTEM_INSTRUCTION,
+        responseMimeType: 'application/json',
       }
     });
 
-    const translation = response.text || '';
-    res.json({ translation: translation.trim() });
+    const responseText = (response.text || '').trim();
+    console.log(`Raw Gemini audio response: ${responseText}`);
+    
+    try {
+      const parsed = JSON.parse(responseText);
+      res.json({
+        detectedLanguage: parsed.detectedLanguage || 'English',
+        transcription: parsed.transcription || '',
+        translation: parsed.translation || ''
+      });
+    } catch (err) {
+      console.error('Failed to parse Gemini response as JSON:', responseText, err);
+      // Fallback if parsing fails: assume responseText is the translation, and set default transcription
+      res.json({
+        detectedLanguage: 'English',
+        transcription: '[Voice input processed]',
+        translation: responseText
+      });
+    }
   } catch (error) {
     console.error('Error in audio translation:', error);
     res.status(500).json({ error: error.message || 'Audio translation failed' });

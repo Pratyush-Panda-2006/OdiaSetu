@@ -59,10 +59,10 @@ export default function RadiantOutputPanel({
         </span>
       </div>
       
-      <div className="radiant-wrapper rounded-[32px] h-72 md:h-80 group">
+      <div className="radiant-wrapper rounded-[32px] h-64 md:h-80 group">
         <div className="radiant-border rounded-[32px]"></div>
-        <div className="white-panel h-full w-full rounded-[32px] p-8 flex flex-col">
-          <div className="flex-1 text-xl sm:text-2xl md:text-3xl font-light text-slate-950 leading-relaxed font-serif overflow-y-auto pr-1">
+        <div className="white-panel h-full w-full rounded-[32px] p-5 md:p-8 flex flex-col">
+          <div className="flex-1 text-lg sm:text-xl md:text-2xl font-light text-slate-950 leading-relaxed font-serif overflow-y-auto pr-1">
             {isProcessing ? (
               <span className="text-slate-300 italic animate-pulse">Translating...</span>
             ) : outputText ? (
@@ -72,32 +72,32 @@ export default function RadiantOutputPanel({
             )}
           </div>
           
-          <div className="mt-4 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+          <div className="mt-4 flex items-center justify-end gap-2 sm:gap-3 border-t border-slate-100 pt-4">
             <button 
               type="button"
               onClick={handleCopy}
               disabled={!outputText}
-              className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-950 hover:text-white transition-all duration-300 disabled:opacity-50 disabled:hover:bg-slate-50 disabled:hover:text-slate-500"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-950 hover:text-white transition-all duration-300 disabled:opacity-50 disabled:hover:bg-slate-50 disabled:hover:text-slate-500"
               title="Copy translation"
             >
-              {copied ? <Check className="text-xl text-green-500" /> : <Copy className="text-xl" />}
+              {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
             </button>
             
             <button 
               type="button"
               onClick={handleSpeak}
               disabled={!outputText}
-              className="w-12 h-12 rounded-2xl bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-950 hover:text-white transition-all duration-300 disabled:opacity-50 disabled:hover:bg-slate-50 disabled:hover:text-slate-500"
+              className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-slate-50 border border-slate-200 text-slate-500 flex items-center justify-center hover:bg-slate-950 hover:text-white transition-all duration-300 disabled:opacity-50 disabled:hover:bg-slate-50 disabled:hover:text-slate-500"
               title="Speak translation"
             >
-              <Volume2 className="text-xl" />
+              <Volume2 className="w-5 h-5" />
             </button>
             
             <button 
               type="button"
               onClick={handleSave}
               disabled={!outputText}
-              className="px-6 h-12 rounded-2xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 shadow-lg shadow-indigo-200/50 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:hover:bg-indigo-600 disabled:shadow-none flex items-center gap-2"
+              className="px-4 sm:px-6 h-10 sm:h-12 rounded-xl sm:rounded-2xl bg-indigo-600 text-white font-semibold text-sm hover:bg-indigo-700 shadow-lg shadow-indigo-200/50 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:hover:bg-indigo-600 disabled:shadow-none flex items-center gap-2"
               title="Save to history"
             >
               {saved ? (
