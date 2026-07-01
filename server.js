@@ -27,12 +27,27 @@ const upload = multer({
   }
 });
 
-// Initialize the GoogleGenAI client
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  console.warn("WARNING: GEMINI_API_KEY environment variable is missing!");
+// Load all configured keys and initialize client instances for key rotation
+const apiKeys = [
+  process.env.GEMINI_API_KEY,
+  process.env.GEMINI_API_KEY_2,
+  process.env.GEMINI_API_KEY_3,
+  process.env.GEMINI_API_KEY_4
+].filter(Boolean);
+
+if (apiKeys.length === 0) {
+  console.warn("WARNING: No GEMINI_API_KEY environment variables are configured!");
 }
-const ai = new GoogleGenAI({ apiKey });
+
+const clients = apiKeys.map(key => new GoogleGenAI({ apiKey: key }));
+
+// Select a random client from the initialized list to balance requests
+function getAI() {
+  if (clients.length === 0) {
+    throw new Error("No Gemini API Keys configured on the server.");
+  }
+  return clients[Math.floor(Math.random() * clients.length)];
+}
 
 const SYSTEM_INSTRUCTION = "You are a real-time, context-aware voice translator between Odia and English. Analyze the provided file/text. If it is in Odia (including casual variations mixed with English), translate to natural English. If it is in English, translate directly into native Odia script. Output ONLY the translation. No conversational preamble.";
 
@@ -44,6 +59,7 @@ app.post('/api/translate-text', async (req, res) => {
   }
 
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [text],
@@ -77,6 +93,7 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
     
     console.log(`Processing audio file of size ${audioBuffer.length} bytes, type ${mimeType}`);
 
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [
