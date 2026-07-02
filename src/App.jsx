@@ -3,6 +3,7 @@ import NavigationHeader from './components/NavigationHeader';
 import RadiantInputPanel from './components/RadiantInputPanel';
 import RadiantOutputPanel from './components/RadiantOutputPanel';
 import HistoryCard from './components/HistoryCard';
+import Footer from './components/Footer';
 import { ArrowUpRight, Repeat } from 'lucide-react';
 
 const MOCK_HISTORY = [
@@ -278,6 +279,9 @@ export default function App() {
           )}
         </div>
       </div>
+      
+      {/* Footer component */}
+      <Footer />
     </div>
   );
 }
