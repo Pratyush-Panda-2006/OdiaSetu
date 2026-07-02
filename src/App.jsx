@@ -39,6 +39,19 @@ export default function App() {
   const [outputLanguage, setOutputLanguage] = useState("English");
   const [isProcessing, setIsProcessing] = useState(false);
   const [history, setHistory] = useState([]);
+  const [activeKeyLabel, setActiveKeyLabel] = useState("Generation 1");
+
+  // Fetch initial active API key label
+  useEffect(() => {
+    fetch('/api/active-key')
+      .then(res => res.json())
+      .then(data => {
+        if (data.apiKeyLabel) {
+          setActiveKeyLabel(data.apiKeyLabel);
+        }
+      })
+      .catch(err => console.error("Error fetching active key:", err));
+  }, []);
 
   // Initialize history from localStorage
   useEffect(() => {
@@ -82,6 +95,9 @@ export default function App() {
       const data = await response.json();
       if (response.ok) {
         setOutputText(data.translation);
+        if (data.apiKeyLabel) {
+          setActiveKeyLabel(data.apiKeyLabel);
+        }
       } else {
         setOutputText(`Error: ${data.error || 'Failed to translate'}`);
       }
@@ -112,6 +128,9 @@ export default function App() {
           const detected = data.detectedLanguage === 'Odia' ? 'Odia' : 'English';
           setInputLanguage(detected);
           setOutputLanguage(detected === 'Odia' ? 'English' : 'Odia');
+        }
+        if (data.apiKeyLabel) {
+          setActiveKeyLabel(data.apiKeyLabel);
         }
       } else {
         setOutputText(`Error: ${data.error || 'Failed to process voice'}`);
@@ -170,7 +189,7 @@ export default function App() {
       
       <div className="relative z-10 w-full max-w-6xl flex flex-col items-center space-y-8 md:space-y-12 my-auto py-8 md:py-12">
         {/* Header Component */}
-        <NavigationHeader showBadge={true} homeHref="#" />
+        <NavigationHeader showBadge={true} homeHref="#" activeKeyLabel={activeKeyLabel} />
         
         {/* Subtitle typing effect */}
         <div className="h-8 flex justify-center">

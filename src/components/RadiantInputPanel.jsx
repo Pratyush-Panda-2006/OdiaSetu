@@ -116,7 +116,7 @@ export default function RadiantInputPanel({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between px-4">
-        <span className="text-[10px] font-bold tracking-[0.2em] text-indigo-300/60 uppercase font-display">
+        <span className="text-sm sm:text-base font-extrabold tracking-wider text-indigo-200 uppercase font-display">
           Input: {language}
         </span>
         {permissionError && (

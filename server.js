@@ -29,24 +29,28 @@ const upload = multer({
 
 // Load all configured keys and initialize client instances for key rotation
 const apiKeys = [
-  process.env.GEMINI_API_KEY,
-  process.env.GEMINI_API_KEY_2,
-  process.env.GEMINI_API_KEY_3,
-  process.env.GEMINI_API_KEY_4
-].filter(Boolean);
+  { key: process.env.GEMINI_API_KEY, label: "Generation 1" },
+  { key: process.env.GEMINI_API_KEY_2, label: "Generation 2" },
+  { key: process.env.GEMINI_API_KEY_3, label: "Generation 3" },
+  { key: process.env.GEMINI_API_KEY_4, label: "Generation 4" }
+].filter(item => Boolean(item.key));
 
 if (apiKeys.length === 0) {
   console.warn("WARNING: No GEMINI_API_KEY environment variables are configured!");
 }
 
-const clients = apiKeys.map(key => new GoogleGenAI({ apiKey: key }));
+const clients = apiKeys.map(item => ({
+  client: new GoogleGenAI({ apiKey: item.key }),
+  label: item.label
+}));
 
 // Select a random client from the initialized list to balance requests
 function getAI() {
   if (clients.length === 0) {
     throw new Error("No Gemini API Keys configured on the server.");
   }
-  return clients[Math.floor(Math.random() * clients.length)];
+  const index = Math.floor(Math.random() * clients.length);
+  return clients[index];
 }
 
 const SYSTEM_INSTRUCTION = "You are a real-time, context-aware voice translator between Odia and English. Analyze the provided file/text. If it is in Odia (including casual variations mixed with English), translate to natural English. If it is in English, translate directly into native Odia script. Output ONLY the translation. No conversational preamble.";
@@ -72,8 +76,8 @@ app.post('/api/translate-text', async (req, res) => {
   }
 
   try {
-    const ai = getAI();
-    const response = await ai.models.generateContent({
+    const { client, label } = getAI();
+    const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [text],
       config: {
@@ -82,7 +86,7 @@ app.post('/api/translate-text', async (req, res) => {
     });
 
     const translation = response.text || '';
-    res.json({ translation: translation.trim() });
+    res.json({ translation: translation.trim(), apiKeyLabel: label });
   } catch (error) {
     console.error('Error in text translation:', error);
     res.status(500).json({ error: error.message || 'Text translation failed' });
@@ -106,8 +110,8 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
     
     console.log(`Processing audio file of size ${audioBuffer.length} bytes, type ${mimeType}`);
 
-    const ai = getAI();
-    const response = await ai.models.generateContent({
+    const { client, label } = getAI();
+    const response = await client.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [
         {
@@ -131,7 +135,8 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
       res.json({
         detectedLanguage: parsed.detectedLanguage || 'English',
         transcription: parsed.transcription || '',
-        translation: parsed.translation || ''
+        translation: parsed.translation || '',
+        apiKeyLabel: label
       });
     } catch (err) {
       console.error('Failed to parse Gemini response as JSON:', responseText, err);
@@ -139,13 +144,23 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
       res.json({
         detectedLanguage: 'English',
         transcription: '[Voice input processed]',
-        translation: responseText
+        translation: responseText,
+        apiKeyLabel: label
       });
     }
   } catch (error) {
     console.error('Error in audio translation:', error);
     res.status(500).json({ error: error.message || 'Audio translation failed' });
   }
+});
+
+// Endpoint to retrieve default active key label
+app.get('/api/active-key', (req, res) => {
+  if (clients.length === 0) {
+    return res.json({ apiKeyLabel: 'No API Key' });
+  }
+  // Return the first key label as the default
+  res.json({ apiKeyLabel: clients[0].label });
 });
 
 // Serve frontend build static files in production
