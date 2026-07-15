@@ -18,6 +18,13 @@ export default function RadiantInputPanel({
   const audioStreamRef = useRef(null);
   const timerIntervalRef = useRef(null);
 
+  const getTextAreaFontSize = () => {
+    if (!value) return "text-lg sm:text-xl md:text-2xl";
+    if (value.length > 1000) return "text-sm sm:text-base";
+    if (value.length > 300) return "text-base sm:text-lg";
+    return "text-lg sm:text-xl md:text-2xl";
+  };
+
   // Clean up timer on unmount
   useEffect(() => {
     return () => {
@@ -51,7 +58,10 @@ export default function RadiantInputPanel({
         }
       }
 
-      const recorder = new MediaRecorder(stream, { mimeType });
+      const recorder = new MediaRecorder(stream, { 
+        mimeType,
+        audioBitsPerSecond: 32000 // 32 kbps to support long voice recordings without massive file size
+      });
       mediaRecorderRef.current = recorder;
       
       const chunks = [];
@@ -145,7 +155,7 @@ export default function RadiantInputPanel({
           ) : (
             <textarea 
               placeholder={`Type or speak in ${language}...`}
-              className="bg-transparent w-full flex-1 resize-none outline-none text-lg sm:text-xl md:text-2xl font-light text-slate-950 placeholder:text-slate-300 leading-relaxed font-serif disabled:opacity-50 overflow-y-auto"
+              className={`bg-transparent w-full flex-1 resize-none outline-none ${getTextAreaFontSize()} font-light text-slate-950 placeholder:text-slate-300 leading-relaxed font-serif disabled:opacity-50 overflow-y-auto`}
               value={value}
               disabled={isProcessing}
               onChange={(e) => onChange(e.target.value)}

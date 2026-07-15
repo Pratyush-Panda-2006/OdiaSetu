@@ -10,6 +10,13 @@ export default function RadiantOutputPanel({
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const getOutputFontSize = () => {
+    if (!outputText) return "text-lg sm:text-xl md:text-2xl";
+    if (outputText.length > 1000) return "text-sm sm:text-base";
+    if (outputText.length > 300) return "text-base sm:text-lg";
+    return "text-lg sm:text-xl md:text-2xl";
+  };
+
   const handleCopy = async () => {
     if (!outputText) return;
     try {
@@ -62,7 +69,7 @@ export default function RadiantOutputPanel({
       <div className="radiant-wrapper rounded-[32px] h-64 md:h-80 group">
         <div className="radiant-border rounded-[32px]"></div>
         <div className="white-panel h-full w-full rounded-[32px] p-5 md:p-8 flex flex-col">
-          <div className="flex-1 text-lg sm:text-xl md:text-2xl font-light text-slate-950 leading-relaxed font-serif overflow-y-auto pr-1">
+          <div className={`flex-1 ${getOutputFontSize()} font-light text-slate-950 leading-relaxed font-serif overflow-y-auto pr-1`}>
             {isProcessing ? (
               <span className="text-slate-300 italic animate-pulse">Translating...</span>
             ) : outputText ? (

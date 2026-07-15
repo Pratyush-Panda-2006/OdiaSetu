@@ -23,7 +23,7 @@ app.use(express.json());
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 20 * 1024 * 1024, // 20MB limit
   }
 });
 
@@ -44,13 +44,78 @@ const clients = apiKeys.map(item => ({
   label: item.label
 }));
 
-// Select a random client from the initialized list to balance requests
-function getAI() {
+// In-memory rate limiting implementation
+const rateLimitWindow = 60 * 1000; // 1 minute
+const rateLimitMax = 30; // 30 requests per minute
+const ipRequestCounts = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, data] of ipRequestCounts.entries()) {
+    if (now - data.startTime > rateLimitWindow) {
+      ipRequestCounts.delete(ip);
+    }
+  }
+}, rateLimitWindow);
+
+function rateLimiter(req, res, next) {
+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const now = Date.now();
+  
+  if (!ipRequestCounts.has(ip)) {
+    ipRequestCounts.set(ip, { count: 1, startTime: now });
+    return next();
+  }
+  
+  const data = ipRequestCounts.get(ip);
+  if (now - data.startTime > rateLimitWindow) {
+    data.count = 1;
+    data.startTime = now;
+    return next();
+  }
+  
+  if (data.count >= rateLimitMax) {
+    return res.status(429).json({ error: 'Too many requests, please try again later.' });
+  }
+  
+  data.count += 1;
+  next();
+}
+
+// Global rate limiting on API endpoints
+app.use('/api', rateLimiter);
+
+// Smooth, balanced round-robin API key selection with failover
+let currentKeyIndex = 0;
+
+function getAI(attempt = 0) {
   if (clients.length === 0) {
     throw new Error("No Gemini API Keys configured on the server.");
   }
-  const index = Math.floor(Math.random() * clients.length);
+  const index = (currentKeyIndex + attempt) % clients.length;
+  if (attempt === 0) {
+    currentKeyIndex = (currentKeyIndex + 1) % clients.length;
+  }
   return clients[index];
+}
+
+async function callWithKeyRotation(apiCall) {
+  let lastError;
+  const totalKeys = clients.length;
+  if (totalKeys === 0) {
+    throw new Error("No Gemini API Keys configured on the server.");
+  }
+  
+  for (let attempt = 0; attempt < totalKeys; attempt++) {
+    const { client, label } = getAI(attempt);
+    try {
+      return await apiCall(client, label);
+    } catch (error) {
+      console.warn(`Gemini API key "${label}" failed. Attempt: ${attempt + 1}/${totalKeys}. Error: ${error.message || error}`);
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 const SYSTEM_INSTRUCTION = "You are a real-time, context-aware voice translator between Odia and English. Analyze the provided file/text. If it is in Odia (including casual variations mixed with English), translate to natural English. If it is in English, translate directly into native Odia script. Output ONLY the translation. No conversational preamble.";
@@ -71,22 +136,38 @@ Do not return any other text, conversational intro, markdown formatting, or mark
 // Text translation endpoint
 app.post('/api/translate-text', async (req, res) => {
   const { text } = req.body;
-  if (!text || text.trim() === '') {
+  
+  if (typeof text !== 'string') {
+    return res.status(400).json({ error: 'Text content must be a string' });
+  }
+
+  const cleanText = text.trim();
+  if (cleanText === '') {
     return res.status(400).json({ error: 'Text content is required' });
   }
 
+  if (cleanText.length > 30000) {
+    return res.status(400).json({ error: 'Text content exceeds the maximum size limit of 30,000 characters' });
+  }
+
+  // Sanitize text by stripping any potential HTML tags
+  const sanitizedText = cleanText
+    .replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, '')
+    .replace(/<\/?[^>]+(>|$)/g, '');
+
   try {
-    const { client, label } = getAI();
-    const response = await client.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [text],
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-      }
+    const result = await callWithKeyRotation(async (client, label) => {
+      const response = await client.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [sanitizedText],
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+        }
+      });
+      return { translation: (response.text || '').trim(), label };
     });
 
-    const translation = response.text || '';
-    res.json({ translation: translation.trim(), apiKeyLabel: label });
+    res.json({ translation: result.translation, apiKeyLabel: result.label });
   } catch (error) {
     console.error('Error in text translation:', error);
     res.status(500).json({ error: error.message || 'Text translation failed' });
@@ -99,9 +180,19 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
     return res.status(400).json({ error: 'Audio file is required' });
   }
 
+  // Validate file type
+  let mimeType = req.file.mimetype;
+  if (!mimeType || !mimeType.startsWith('audio/')) {
+    return res.status(400).json({ error: 'Invalid file type. Only audio files are accepted.' });
+  }
+
+  // Validate size (limit to 20MB)
+  if (req.file.size > 20 * 1024 * 1024) {
+    return res.status(400).json({ error: 'Audio file exceeds the maximum size limit of 20MB.' });
+  }
+
   try {
     const audioBuffer = req.file.buffer;
-    let mimeType = req.file.mimetype;
     
     // Sanitize mimeType if it contains codec specifications (e.g. "audio/webm;codecs=opus")
     if (mimeType.includes(';')) {
@@ -110,24 +201,26 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
     
     console.log(`Processing audio file of size ${audioBuffer.length} bytes, type ${mimeType}`);
 
-    const { client, label } = getAI();
-    const response = await client.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [
-        {
-          inlineData: {
-            mimeType: mimeType,
-            data: audioBuffer.toString('base64')
+    const result = await callWithKeyRotation(async (client, label) => {
+      const response = await client.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: [
+          {
+            inlineData: {
+              mimeType: mimeType,
+              data: audioBuffer.toString('base64')
+            }
           }
+        ],
+        config: {
+          systemInstruction: AUDIO_SYSTEM_INSTRUCTION,
+          responseMimeType: 'application/json',
         }
-      ],
-      config: {
-        systemInstruction: AUDIO_SYSTEM_INSTRUCTION,
-        responseMimeType: 'application/json',
-      }
+      });
+      return { responseText: (response.text || '').trim(), label };
     });
 
-    const responseText = (response.text || '').trim();
+    const responseText = result.responseText;
     console.log(`Raw Gemini audio response: ${responseText}`);
     
     try {
@@ -136,7 +229,7 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
         detectedLanguage: parsed.detectedLanguage || 'English',
         transcription: parsed.transcription || '',
         translation: parsed.translation || '',
-        apiKeyLabel: label
+        apiKeyLabel: result.label
       });
     } catch (err) {
       console.error('Failed to parse Gemini response as JSON:', responseText, err);
@@ -145,7 +238,7 @@ app.post('/api/translate-audio', upload.single('audio'), async (req, res) => {
         detectedLanguage: 'English',
         transcription: '[Voice input processed]',
         translation: responseText,
-        apiKeyLabel: label
+        apiKeyLabel: result.label
       });
     }
   } catch (error) {
@@ -159,8 +252,8 @@ app.get('/api/active-key', (req, res) => {
   if (clients.length === 0) {
     return res.json({ apiKeyLabel: 'No API Key' });
   }
-  // Return the first key label as the default
-  res.json({ apiKeyLabel: clients[0].label });
+  // Return the currently active key index label
+  res.json({ apiKeyLabel: clients[currentKeyIndex].label });
 });
 
 // Serve frontend build static files in production
